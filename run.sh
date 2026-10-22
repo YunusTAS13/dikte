@@ -19,14 +19,25 @@ else
   HF_HUB_DISABLE_IMPLICIT_TOKEN=1 .venv/bin/python server.py &
   echo $! > .dikte.pid
   printf "Model yükleniyor"
-  for _ in $(seq 1 120); do
+  READY=0
+  for _ in $(seq 1 600); do
     if curl -sf "${LOCAL_URL}/api/status" >/dev/null 2>&1; then
       echo " — hazır."
+      READY=1
       break
+    fi
+    if ! kill -0 "$(cat .dikte.pid)" 2>/dev/null; then
+      printf "\nDikte sunucusu başlayamadı. Hata için doğrudan şu komutu çalıştır:\n"
+      echo "HF_HUB_DISABLE_IMPLICIT_TOKEN=1 .venv/bin/python server.py"
+      exit 1
     fi
     printf "."
     sleep 0.5
   done
+  if [ "$READY" -ne 1 ]; then
+    printf "\nSunucu 5 dakika içinde hazır olmadı. Model indirmesi sürüyor olabilir; /api/status adresini kontrol et.\n"
+    exit 1
+  fi
 fi
 
 if [ "$HOST" = "127.0.0.1" ] || [ "$HOST" = "localhost" ]; then

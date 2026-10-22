@@ -36,6 +36,11 @@ let recording = false;
 let audioCtx = null;
 let mediaStream = null;
 let workletNode = null;
+let scriptProcessor = null;
+let legacyResamplePos = 0;
+let legacyPrevSample = 0;
+let legacyPacket = new Float32Array(1024);
+let legacyPacketLength = 0;
 let startedAt = 0;
 let timerInt = null;
 let lastSendAt = 0;
@@ -223,7 +228,7 @@ async function start() {
     return;
   }
   try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({
+    mediaStream = await requestUserMedia({
       audio: {
         deviceId: els.inputSelect.value ? { exact: els.inputSelect.value } : undefined,
         channelCount: 1,
@@ -242,19 +247,23 @@ async function start() {
     return;
   }
 
-  audioCtx = new AudioContext({ sampleRate: 16000 });
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) {
+    mediaStream?.getTracks().forEach((track) => track.stop());
+    mediaStream = null;
+    toast("Bu tarayıcı ses işleme özelliğini desteklemiyor.", 4000);
+    return;
+  }
+  try { audioCtx = new AudioContextClass({ sampleRate: 16000 }); }
+  catch { audioCtx = new AudioContextClass(); }
   if (audioCtx.state === "suspended") await audioCtx.resume();
-  await audioCtx.audioWorklet.addModule("./pcm-worklet.js");
-
   const src = audioCtx.createMediaStreamSource(mediaStream);
   gainNode = audioCtx.createGain();
   gainNode.gain.value = inputGain;
   analyser = audioCtx.createAnalyser();
   analyser.fftSize = 512;
-  workletNode = new AudioWorkletNode(audioCtx, "pcm-worklet");
-  workletNode.port.onmessage = (ev) => {
+  const sendAudioPacket = (data) => {
     if (!recording) return;
-    const data = ev.data;
     let peak = 0;
     for (let i = 0; i < data.length; i++) peak = Math.max(peak, Math.abs(data[i]));
     const safeScale = peak > 0.98 ? 0.98 / peak : 1;
@@ -269,8 +278,42 @@ async function start() {
   mute.gain.value = 0;
   src.connect(gainNode);
   gainNode.connect(analyser);
-  gainNode.connect(workletNode);
-  workletNode.connect(mute);
+  if (audioCtx.audioWorklet && typeof AudioWorkletNode !== "undefined") {
+    try {
+      await audioCtx.audioWorklet.addModule("./pcm-worklet.js");
+      workletNode = new AudioWorkletNode(audioCtx, "pcm-worklet");
+      workletNode.port.onmessage = (ev) => sendAudioPacket(ev.data);
+      gainNode.connect(workletNode);
+      workletNode.connect(mute);
+    } catch {
+      workletNode = null;
+    }
+  }
+  if (!workletNode) {
+    if (!audioCtx.createScriptProcessor) throw new Error("Bu tarayıcı ses işleme özelliğini desteklemiyor.");
+    scriptProcessor = audioCtx.createScriptProcessor(4096, 1, 1);
+    scriptProcessor.onaudioprocess = (event) => {
+      const input = event.inputBuffer.getChannelData(0);
+      const ratio = audioCtx.sampleRate / 16000;
+      for (let i = 0; i < input.length; i++) {
+        const next = input[i];
+        while (legacyResamplePos < 1) {
+          const value = legacyPrevSample + (next - legacyPrevSample) * legacyResamplePos;
+          legacyPacket[legacyPacketLength++] = value;
+          if (legacyPacketLength === legacyPacket.length) {
+            sendAudioPacket(legacyPacket);
+            legacyPacket = new Float32Array(1024);
+            legacyPacketLength = 0;
+          }
+          legacyResamplePos += ratio;
+        }
+        legacyResamplePos -= 1;
+        legacyPrevSample = next;
+      }
+    };
+    gainNode.connect(scriptProcessor);
+    scriptProcessor.connect(mute);
+  }
   mute.connect(audioCtx.destination); // grafiğin canlı kalması için sessiz çıkış
   updateMicFeedback();
 
@@ -307,11 +350,16 @@ async function stop() {
     send({ type: "flush" });
     await Promise.race([flushDone, new Promise((resolve) => setTimeout(resolve, 15000))]);
     workletNode?.disconnect();
+    if (scriptProcessor) {
+      scriptProcessor.disconnect();
+      scriptProcessor.onaudioprocess = null;
+    }
     await audioCtx?.close();
     mediaStream?.getTracks().forEach((t) => t.stop());
   } catch {}
   audioCtx = null;
   workletNode = null;
+  scriptProcessor = null;
   gainNode = null;
   analyser = null;
   mediaStream = null;
@@ -339,11 +387,17 @@ async function enumerateInputs() {
   } catch { /* izin verilmeden aygıt adları listelenmeyebilir */ }
 }
 
+function requestUserMedia(constraints) {
+  if (navigator.mediaDevices?.getUserMedia) return navigator.mediaDevices.getUserMedia(constraints);
+  const legacy = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+  if (legacy) return new Promise((resolve, reject) => legacy.call(navigator, constraints, resolve, reject));
+  return Promise.reject(new Error("getUserMedia desteklenmiyor"));
+}
+
 async function revealInputNames() {
-  if (!navigator.mediaDevices?.getUserMedia) return enumerateInputs();
   let permissionStream;
   try {
-    permissionStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    permissionStream = await requestUserMedia({ audio: true });
     await enumerateInputs();
   } catch {
     els.micFeedback.textContent = "Mikrofon izni kayıt başlatılırken istenir.";

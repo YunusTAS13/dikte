@@ -102,6 +102,7 @@ body.live .glow { opacity: 0.75; }
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  font-size: 30px;
   font-size: clamp(22px, 2.4vw, 34px);
   line-height: 1.52;
   letter-spacing: 0.2px;
@@ -115,7 +116,7 @@ body.board-mode .topbar { padding: 12px 24px 4px; }
 body.board-mode .layout { grid-template-columns: 1fr; padding: 8px 24px 18px; }
 body.board-mode .side { display: none; }
 body.board-mode .transcript-card { padding: 30px 40px 24px; }
-body.board-mode .transcript { font-size: calc(clamp(38px, 4.6vw, 76px) * var(--board-font-scale, 1)); line-height: 1.38; }
+body.board-mode .transcript { font-size: 52px; font-size: calc(clamp(38px, 4.6vw, 76px) * var(--board-font-scale, 1)); line-height: 1.38; }
 .board-control { display: none; }
 body.board-mode .board-control { display: inline-flex; }
 body.high-contrast { --bg: #000; --card: #000; --line: #fff; --text: #fff; --muted: #e4e4e4; --accent: #ffff00; --accent-2: #00ffff; }

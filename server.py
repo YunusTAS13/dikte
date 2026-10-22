@@ -50,7 +50,9 @@ def preload_cuda_libs() -> None:
 
 preload_cuda_libs()
 
-MODEL_NAME = os.environ.get("DIKTE_MODEL", "deepdml/faster-whisper-large-v3-turbo-ct2")
+GPU_AVAILABLE = shutil.which("nvidia-smi") is not None
+DEFAULT_MODEL = "deepdml/faster-whisper-large-v3-turbo-ct2" if GPU_AVAILABLE else "Systran/faster-whisper-tiny"
+MODEL_NAME = os.environ.get("DIKTE_MODEL", DEFAULT_MODEL)
 LANGUAGE = "tr"
 SR = 16000
 FRAME = 512  # 32 ms
@@ -58,7 +60,7 @@ FRAME = 512  # 32 ms
 SILENCE_END = 0.55      # bu kadar sessizlik -> cümle bitti
 MIN_COMMIT_AUDIO = 0.8  # commit için en az bu kadar ses
 MAX_BUFFER = float(os.environ.get("DIKTE_MAX_BUFFER", "20"))  # daha uzun konuşmayı bölerek commit et
-PARTIAL_EVERY = 0.10    # partial güncelleme aralığı
+PARTIAL_EVERY = float(os.environ.get("DIKTE_PARTIAL_EVERY", "0.10" if GPU_AVAILABLE else "0.60"))
 
 app = FastAPI(title="Dikte")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
@@ -110,10 +112,11 @@ def load_model() -> None:
     global model, model_device
     from faster_whisper import WhisperModel
 
-    attempts = [
-        ("cuda", "float16"),
-        ("cpu", "int8"),
-    ]
+    forced_device = os.environ.get("DIKTE_DEVICE")
+    attempts = ([ (forced_device, "float16" if forced_device == "cuda" else "int8") ] if forced_device else [])
+    if GPU_AVAILABLE and forced_device != "cpu":
+        attempts.append(("cuda", "float16"))
+    attempts.append(("cpu", "int8"))
     for device, ctype in attempts:
         try:
             t0 = time.time()
@@ -121,7 +124,7 @@ def load_model() -> None:
                 MODEL_NAME,
                 device=device,
                 compute_type=ctype,
-                cpu_threads=max(4, (os.cpu_count() or 4) // 2),
+                cpu_threads=max(1, min(4 if device == "cuda" else 2, (os.cpu_count() or 2) // 2)),
                 num_workers=1,
             )
             # ilk çağrı ısınması
@@ -143,8 +146,8 @@ def transcribe(audio: np.ndarray, prompt: str, quality: bool):
     segments, _info = model.transcribe(
         audio,
         language=LANGUAGE,
-        beam_size=5 if quality else 1,
-        best_of=5 if quality else 1,
+        beam_size=(5 if GPU_AVAILABLE else 1) if quality else 1,
+        best_of=(5 if GPU_AVAILABLE else 1) if quality else 1,
         temperature=0.0,
         condition_on_previous_text=False,
         initial_prompt=prompt or None,

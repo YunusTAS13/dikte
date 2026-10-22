@@ -2,7 +2,7 @@
 
 Konuşmayı Türkçe canlı altyazıya dönüştüren yerel web uygulaması. Varsayılan kullanımda ses aynı bilgisayardaki sunucuda işlenir; ilk kurulumda konuşma modeli Hugging Face üzerinden indirilir.
 
-![durum](https://img.shields.io/badge/model-faster--whisper%20large--v3--turbo-35e0b0)
+Varsayılan olarak NVIDIA GPU varsa large-v3-turbo, GPU yoksa CPU'ya uygun küçük çok dilli Whisper modeli seçilir.
 
 ## Neler yapıyor
 
@@ -20,18 +20,24 @@ Depodaki [dikte-demo.mp4](media/dikte-demo.mp4) videosu klonlama ile birlikte in
 ## Gereksinimler
 
 - Linux (X11 veya Wayland), mikrofon ve güncel tarayıcı
-- NVIDIA GPU + sürücü (CPU'ya düşer ama çok yavaş olur)
-- `uv`, `ffmpeg` (kurulumda model indirme dışında gerekmez)
+- Güncel x86_64 Linux; NVIDIA GPU varsa daha büyük model ve daha iyi hız sağlar
+- Kurulum için `curl`; `install.sh` uv ve Python 3.12'yi otomatik kurar
 - Otomatik yazma için: `ydotool` + `/dev/uinput` erişimi, ya da `xdotool`
 
 ## Kurulum ve yerel kullanım
 
 ```bash
-./install.sh     # Python 3.12 venv + faster-whisper + CUDA kütüphaneleri
+git clone https://github.com/YunusTAS13/dikte.git
+cd dikte
+./install.sh     # Python 3.12 venv + faster-whisper (CUDA zorunlu değil)
 ./run.sh         # sunucuyu başlatır ve tarayıcıyı açar
 ```
 
-İlk çalıştırmada model (~1.6 GB) indirilir, sonra hep yerel cache'ten yüklenir.
+İlk çalıştırmada model indirilir; GPU'lu makinede büyük model yaklaşık 1.6 GB, CPU kipinde kullanılan tiny model yaklaşık 75 MB'dır. Sonraki açılışlarda yerel önbellekten yüklenir.
+
+### FATİH Faz 1 notu
+
+Faz 1 Vestel kılavuzundaki örnek donanım i3-2310M, en çok 4 GB RAM ve Intel HD 3000 grafik birimidir. Bu nedenle kurulum CUDA paketlerini yüklemez; NVIDIA GPU bulunmuyorsa CPU'da int8 ve tiny model seçer. Eski tarayıcıda AudioWorklet yoksa ScriptProcessor tabanlı ses işleme yedeği kullanılır. Bu uyumluluk ayarları tahtada açılmayı hedefler; eski CPU'da canlı altyazı gecikebilir ve tiny modelin Türkçe doğruluğu büyük modele göre daha düşüktür. Ders kullanımından önce tahtada mikrofon, gecikme ve kelime doğruluğu mutlaka denenmelidir.
 
 ## Kullanım
 
@@ -82,7 +88,9 @@ Mikrofon ──► AudioWorklet (16 kHz mono float32) ──WebSocket──► F
 |---|---|---|
 | `DIKTE_PORT` | `8765` | HTTP portu |
 | `DIKTE_HOST` | `127.0.0.1` | Dinlenecek adres; LAN için `0.0.0.0` |
-| `DIKTE_MODEL` | `deepdml/faster-whisper-large-v3-turbo-ct2` | faster-whisper CT2 modeli |
+| `DIKTE_MODEL` | GPU'da large-v3-turbo, GPU'suz `Systran/faster-whisper-tiny` | faster-whisper CT2 modeli; `small`/`medium` gibi model adlarıyla değiştirilebilir |
+| `DIKTE_DEVICE` | otomatik | `cpu` veya `cuda` ile aygıtı sabitle |
+| `DIKTE_PARTIAL_EVERY` | GPU'da `0.10`, CPU'da `0.60` | Geçici altyazı güncelleme aralığı (saniye) |
 
 İnce ayar için `server.py` başındaki sabitler: `SILENCE_END`, `MAX_BUFFER`, `PARTIAL_EVERY`.
 
@@ -92,7 +100,7 @@ Mikrofon ──► AudioWorklet (16 kHz mono float32) ──WebSocket──► F
 - **Otomatik yazma çalışmıyor**: `ydotool` kurulu mu, `/dev/uinput` yazılabilir mi (`ls -l /dev/uinput`), kullanıcı `input` grubunda mı? Değilse `xdotool` (X11 uygulamaları) denenir.
 - **Mikrofon izni**: tarayıcı adres çubuğundaki mikrofon simgesinden izin ver; `localhost` güvenli bağlam sayılır.
 - **Tahtadan mikrofon erişimi**: sunucuya IP ile HTTP üzerinden bağlanınca tarayıcı mikrofonu vermeyebilir; HTTPS gerekir.
-- **Gecikme yüksek**: GPU kullanıldığından emin ol (`/api/status` → `device`).
+- **Gecikme yüksek**: Faz 1 gibi eski CPU'larda tiny model kullanılır; daha hızlı bilgisayar/GPU kullanmak gerekebilir (`/api/status` → `device`).
 
 ## Dosyalar
 
