@@ -48,7 +48,7 @@ Sunucunun LAN IP adresini `hostname -I` komutuyla bulun; tahtada `http://SUNUCU_
 
 ## GitHub Pages
 
-`main` dalındaki arayüz değişiklikleri GitHub Actions ile otomatik olarak Pages'a dağıtılır: `https://yunustas13.github.io/dikte/`. Pages yalnızca statik arayüzdür; Whisper modeli burada çalışmaz. Sayfayı açınca **Transkripsiyon sunucusu** alanına, HTTPS ve WSS sunan Dikte sunucunuzun adresini yazıp **Bağlan**'a basın. Adres bu tarayıcıda saklanır.
+`docs/` klasörü GitHub Pages arayüzünü içerir. `static/` kaynaklarını değiştirdikten sonra `./build-pages.sh` çalıştırıp commit/push edin. GitHub deposunda Settings → Pages → Build and deployment → Source bölümünde **Deploy from a branch**, `main` ve `/docs` seçin. Yayın adresi: `https://yunustas13.github.io/dikte/`. Pages yalnızca statik arayüzdür; Whisper modeli burada çalışmaz. Sayfayı açınca **Transkripsiyon sunucusu** alanına, HTTPS ve WSS sunan Dikte sunucunuzun adresini yazıp **Bağlan**'a basın. Adres bu tarayıcıda saklanır.
 
 Sunucu tarafında HTTPS reverse proxy ile `/` ve `/ws` uçlarını uygulamanın `127.0.0.1:8765` adresine yönlendirin. Tarayıcı güvenlik kısıtları nedeniyle GitHub Pages'tan `http://` veya şifrelenmemiş `ws://` sunucusuna mikrofon akışı gönderilemez. Sayfa dağıtımı için repo Settings → Pages → Build and deployment → Source değerinin **GitHub Actions** olması gerekir.
 

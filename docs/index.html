@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>deneme</title>
+<link rel="stylesheet" href="./style.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎙️</text></svg>" />
+</head>
+<body>
+<div class="glow"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">🎙️</span>
+    <div>
+      <h1>Dikte</h1>
+    </div>
+  </div>
+  <div class="status" id="status">
+    <span class="dot" id="dot"></span>
+    <span id="statusText">bağlanıyor…</span>
+    <span class="chip" id="deviceChip">—</span>
+    <button class="ghost compact" id="fullscreenBtn" type="button">Tam ekran</button>
+    <button class="ghost compact" id="contrastBtn" type="button" aria-pressed="false">Yüksek kontrast</button>
+    <button class="ghost compact board-control" id="fontDownBtn" type="button" aria-label="Yazıyı küçült">A−</button>
+    <button class="ghost compact board-control" id="fontUpBtn" type="button" aria-label="Yazıyı büyüt">A+</button>
+    <button class="mic compact board-control" id="boardMicBtn" type="button">Başlat</button>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="card transcript-card">
+    <div class="transcript" id="transcript" aria-live="polite">
+      <span class="hint" id="hint">Mikrofon düğmesine bas ve konuşmaya başla.<br /><small></small></span>
+      <span id="committed"></span><span id="partial" class="partial"></span><span class="caret" id="caret"></span>
+    </div>
+
+    <div class="stats">
+      <span><b id="words">0</b> kelime</span>
+      <span><b id="chars">0</b> karakter</span>
+      <span><b id="timer">00:00</b></span>
+      <span class="spacer"></span>
+      <span id="latency" class="latency"></span>
+    </div>
+
+    <div class="toolbar">
+      <button id="mic" class="mic" title="Başlat / durdur (Boşluk)">
+        <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
+          <path d="M12 15a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 1 0-7 0v5.5A3.5 3.5 0 0 0 12 15Z" fill="currentColor"/>
+          <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+        </svg>
+        <span id="micLabel">Başlat</span>
+      </button>
+
+      <div class="meter" id="meter"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+
+      <div class="actions">
+        <button class="ghost" id="pauseBtn" type="button" disabled>Altyazıyı duraklat</button>
+        <button class="ghost" id="undoBtn" type="button" disabled>Son cümleyi geri al</button>
+        <button class="ghost" id="editBtn" type="button" disabled>Son cümleyi düzelt</button>
+        <button class="ghost" id="copyBtn">Kopyala</button>
+        <button class="ghost" id="downloadBtn">İndir</button>
+        <button class="ghost danger" id="clearBtn">Temizle</button>
+      </div>
+    </div>
+  </section>
+
+  <aside class="side">
+    <div class="card small audio-controls">
+      <strong>Mikrofon</strong>
+      <label for="inputSelect">Ses girişi</label>
+      <select id="inputSelect"><option value="">Varsayılan mikrofon</option></select>
+      <label for="gainRange">Ses seviyesi <output id="gainValue">100%</output></label>
+      <input id="gainRange" type="range" min="50" max="200" value="100" step="5" />
+      <div class="input-meter" role="meter" aria-label="Mikrofon sinyal seviyesi" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="inputMeterFill"></i></div>
+      <small id="micFeedback">Mikrofonu başlatınca giriş düzeyi burada görünür.</small>
+    </div>
+    <div class="card small server-controls">
+      <strong>Transkripsiyon sunucusu</strong>
+      <small>GitHub Pages yalnızca arayüzü sunar. Modelin çalıştığı sunucunun HTTPS adresini girin.</small>
+      <label for="serverUrl">Sunucu adresi</label>
+      <input id="serverUrl" type="url" placeholder="https://dikte.okul.edu.tr" autocomplete="url" />
+      <button class="ghost" id="serverSaveBtn" type="button">Bağlan</button>
+    </div>
+    <div class="card small">
+      <label class="switch-row">
+        <span>
+          <strong>Otomatik yazma(WIP)</strong>
+          <small>Açıkken sabitlenen metin, odaktaki uygulamaya yazılır.</small>
+        </span>
+        <input type="checkbox" id="autoType" />
+        <i class="switch"></i>
+      </label>
+      <p class="note" id="autotypeNote"></p>
+    </div>
+
+    <div class="card small tips">
+      <strong>Kısayollar</strong>
+      <ul>
+        <li><kbd>Boşluk</kbd> başlat / durdur</li>
+        <li><kbd>F9</kbd> her yerden başlat / durdur</li>
+        <li><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> tümünü kopyala</li>
+        <li><kbd>Esc</kbd> kaydı bitir</li>
+      </ul>
+      <strong>İpuçları</strong>
+      <ul>
+        <li>Normal hızda, cümle sonunda kısa duraklayarak konuş.</li>
+        <li>Gri yazı henüz kesinleşmemiş canlı tahmindir.</li>
+        <li>Otomatik yazma için önce imleci hedef uygulamaya koy.</li>
+      </ul>
+    </div>
+  </aside>
+</main>
+
+<div class="toast" id="toast"></div>
+<script src="./app.js"></script>
+</body>
+</html>
