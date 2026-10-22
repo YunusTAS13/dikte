@@ -46,6 +46,12 @@ DIKTE_HOST=0.0.0.0 ./run.sh
 
 Sunucunun LAN IP adresini `hostname -I` komutuyla bulun; tahtada `http://SUNUCU_IP:8765` adresini açın. Mikrofon erişimi uzak HTTP sayfalarında çoğu tarayıcıda engellenir. Gerçek kullanımda HTTPS reverse proxy (ör. Caddy/Nginx) ve sertifika gerekir. Portu doğrudan internete açmayın; erişim kontrolü ve okul ağı kurallarını ayrıca yapılandırın. `./run.sh`, LAN modunda sunucu bilgisayarında tarayıcı açmaz.
 
+## GitHub Pages
+
+`main` dalındaki arayüz değişiklikleri GitHub Actions ile otomatik olarak Pages'a dağıtılır: `https://yunustas13.github.io/dikte/`. Pages yalnızca statik arayüzdür; Whisper modeli burada çalışmaz. Sayfayı açınca **Transkripsiyon sunucusu** alanına, HTTPS ve WSS sunan Dikte sunucunuzun adresini yazıp **Bağlan**'a basın. Adres bu tarayıcıda saklanır.
+
+Sunucu tarafında HTTPS reverse proxy ile `/` ve `/ws` uçlarını uygulamanın `127.0.0.1:8765` adresine yönlendirin. Tarayıcı güvenlik kısıtları nedeniyle GitHub Pages'tan `http://` veya şifrelenmemiş `ws://` sunucusuna mikrofon akışı gönderilemez. Sayfa dağıtımı için repo Settings → Pages → Build and deployment → Source değerinin **GitHub Actions** olması gerekir.
+
 > Not: Otomatik yazma açıkken bu sayfa odaktaysa metin sayfaya değil panoya gider. Hedef uygulamayı odakta tut.
 
 ## Nasıl çalışıyor

@@ -27,6 +27,7 @@ const els = {
   inputMeter: $("inputMeterFill"), micFeedback: $("micFeedback"),
   pauseBtn: $("pauseBtn"), undoBtn: $("undoBtn"), editBtn: $("editBtn"),
   fontDownBtn: $("fontDownBtn"), fontUpBtn: $("fontUpBtn"), boardMicBtn: $("boardMicBtn"),
+  serverUrl: $("serverUrl"), serverSaveBtn: $("serverSaveBtn"),
 };
 
 let ws = null;
@@ -48,6 +49,8 @@ let analyser = null;
 let meterFrame = null;
 let boardFontScale = 1;
 const pendingFlushes = [];
+const SERVER_URL_KEY = "dikte-server-url";
+let serverBase = (localStorage.getItem(SERVER_URL_KEY) || window.DIKTE_SERVER_URL || location.origin).replace(/\/$/, "");
 
 const bars = Array.from(els.meter.querySelectorAll("i"));
 
@@ -120,8 +123,9 @@ function meterIdle() {
 // ------------------------------------------------------------ websocket
 
 function connect() {
-  const proto = location.protocol === "https:" ? "wss" : "ws";
-  ws = new WebSocket(`${proto}://${location.host}/ws`);
+  const endpoint = new URL(serverBase || location.origin);
+  const proto = endpoint.protocol === "https:" ? "wss:" : "ws:";
+  ws = new WebSocket(`${proto}//${endpoint.host}${endpoint.pathname.replace(/\/$/, "")}/ws`);
   ws.binaryType = "arraybuffer";
 
   ws.onopen = () => {
@@ -132,7 +136,7 @@ function connect() {
 
   ws.onclose = () => {
     wsReady = false;
-    setStatus("yeniden bağlanıyor…");
+    setStatus(serverBase === location.origin ? "sunucu adresi gerekli" : "yeniden bağlanıyor…", "err");
     setTimeout(connect, 1200);
   };
 
@@ -194,10 +198,30 @@ function send(obj) {
   if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
 }
 
+function saveServerUrl() {
+  const value = els.serverUrl.value.trim().replace(/\/$/, "");
+  if (!value) return toast("Sunucu adresini girin.");
+  let parsed;
+  try { parsed = new URL(value); } catch { return toast("Geçerli bir sunucu adresi girin."); }
+  if (!/^https?:$/.test(parsed.protocol)) return toast("Adres http:// veya https:// ile başlamalı.");
+  if (location.protocol === "https:" && parsed.protocol !== "https:") {
+    return toast("Güvenli sayfadan bağlantı için sunucu HTTPS kullanmalı.", 4500);
+  }
+  serverBase = value;
+  localStorage.setItem(SERVER_URL_KEY, serverBase);
+  if (ws) ws.close();
+  connect();
+  toast("Sunucu adresi kaydedildi; bağlanılıyor.");
+}
+
 // ------------------------------------------------------------ ses
 
 async function start() {
   if (recording) return;
+  if (!wsReady) {
+    toast("Önce çalışan transkripsiyon sunucusunun adresini girip bağlanın.", 4000);
+    return;
+  }
   try {
     mediaStream = await navigator.mediaDevices.getUserMedia({
       audio: {
@@ -469,7 +493,11 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-connect();
+const needsRemoteServer = location.hostname.endsWith(".github.io") && !localStorage.getItem(SERVER_URL_KEY) && !window.DIKTE_SERVER_URL;
+els.serverUrl.value = serverBase === location.origin ? "" : serverBase;
+if (needsRemoteServer) setStatus("sunucu adresi gerekli", "err");
+else connect();
+els.serverSaveBtn.addEventListener("click", saveServerUrl);
 revealInputNames();
 navigator.mediaDevices?.addEventListener?.("devicechange", enumerateInputs);
 render();

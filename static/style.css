@@ -220,6 +220,10 @@ body.live .meter i { opacity: 0.95; }
 .side { display: flex; flex-direction: column; gap: 18px; min-height: 0; overflow-y: auto; }
 .small { padding: 18px 20px; font-size: 13px; }
 .audio-controls { display: flex; flex-direction: column; gap: 9px; }
+.server-controls { display: flex; flex-direction: column; gap: 9px; }
+.server-controls small { color: var(--muted); line-height: 1.45; }
+.server-controls label { color: var(--muted); font-size: 12px; }
+.server-controls input { padding: 9px; color: var(--text); background: #111820; border: 1px solid var(--line); border-radius: 8px; }
 .audio-controls > strong { margin-bottom: 2px; }
 .audio-controls label { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; }
 .audio-controls select { width: 100%; padding: 9px; color: var(--text); background: #111820; border: 1px solid var(--line); border-radius: 8px; }

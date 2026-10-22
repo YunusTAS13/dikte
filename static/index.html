@@ -76,6 +76,13 @@
       <div class="input-meter" role="meter" aria-label="Mikrofon sinyal seviyesi" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="inputMeterFill"></i></div>
       <small id="micFeedback">Mikrofonu başlatınca giriş düzeyi burada görünür.</small>
     </div>
+    <div class="card small server-controls">
+      <strong>Transkripsiyon sunucusu</strong>
+      <small>GitHub Pages yalnızca arayüzü sunar. Modelin çalıştığı sunucunun HTTPS adresini girin.</small>
+      <label for="serverUrl">Sunucu adresi</label>
+      <input id="serverUrl" type="url" placeholder="https://dikte.okul.edu.tr" autocomplete="url" />
+      <button class="ghost" id="serverSaveBtn" type="button">Bağlan</button>
+    </div>
     <div class="card small">
       <label class="switch-row">
         <span>
