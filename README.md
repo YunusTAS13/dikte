@@ -13,6 +13,10 @@ Konuşmayı Türkçe canlı altyazıya dönüştüren yerel web uygulaması. Var
 - **Global kısayol**: `F9` ile nerede olursan ol kaydı başlat/durdur.
 - Kopyala, `.txt` indir, temizle, kelime/karakter sayacı, gecikme göstergesi.
 
+## Demo videosu
+
+Depodaki [dikte-demo.mp4](media/dikte-demo.mp4) videosu klonlama ile birlikte indirilir.
+
 ## Gereksinimler
 
 - Linux (X11 veya Wayland), mikrofon ve güncel tarayıcı
